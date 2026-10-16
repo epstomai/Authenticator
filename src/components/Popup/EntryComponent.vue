@@ -6,6 +6,8 @@
     v-bind:class="{
       entry: true,
       pinnedEntry: entry.pinned,
+      matchedEntry: isMatched,
+      learnedEntry: isLearned,
       'no-copy': noCopy(entry.code),
     }"
     v-on:click="copyCode(entry)"
@@ -39,10 +41,26 @@
       <IconRedo />
     </div>
     <div class="issuer">
-      {{
+      <span class="issuer-name">{{
         entry.issuer.split("::")[0] +
         (theme === "compact" ? ` (${entry.account})` : "")
-      }}
+      }}</span>
+      <span class="badge badge-learned" v-if="!style.isEditing && isLearned">
+        {{ i18n.remembered_for_site }}
+        <button
+          type="button"
+          class="forget-association"
+          v-bind:title="i18n.forget_association"
+          v-on:click.stop="forgetAssociation"
+        >
+          ×
+        </button>
+      </span>
+      <span
+        class="badge badge-match"
+        v-else-if="!style.isEditing && isMatched"
+        >{{ i18n.matches_this_site }}</span
+      >
     </div>
     <div class="issuerEdit">
       <input
@@ -121,6 +139,14 @@ export default Vue.extend({
   props: {
     entry: OTPEntry,
     tabindex: Number,
+    isMatched: {
+      type: Boolean,
+      default: false,
+    },
+    isLearned: {
+      type: Boolean,
+      default: false,
+    },
   },
   methods: {
     noCopy(code: string) {
@@ -241,11 +267,29 @@ export default Vue.extend({
               "notification/ephermalMessage",
               this.i18n.copied
             );
+            this.rememberCurrentSite(entry);
           }
         }
       );
 
       return;
+    },
+    async rememberCurrentSite(entry: OTPEntry) {
+      const hostname = this.$store.getters["accounts/currentHostname"];
+      if (!hostname) {
+        return;
+      }
+      await this.$store.dispatch("accounts/rememberSite", {
+        hostname,
+        entryHash: entry.hash,
+      });
+    },
+    async forgetAssociation() {
+      const hostname = this.$store.getters["accounts/currentHostname"];
+      if (!hostname) {
+        return;
+      }
+      await this.$store.dispatch("accounts/forgetSite", hostname);
     },
   },
   components: {

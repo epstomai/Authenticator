@@ -58,6 +58,15 @@ interface StyleState {
   };
 }
 
+interface SiteAssociation {
+  entryHash: string;
+  learnedAt: number;
+}
+
+interface SiteAssociations {
+  [hostname: string]: SiteAssociation;
+}
+
 interface AccountsState {
   entries: OTPEntryInterface[];
   defaultEncryption: string;
@@ -76,6 +85,7 @@ interface AccountsState {
   keys: OldKey | Key[];
   wrongPassword: boolean;
   initComplete: boolean;
+  associations: SiteAssociations;
 }
 
 interface NotificationState {

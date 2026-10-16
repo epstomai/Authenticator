@@ -1,54 +1,83 @@
-# Authenticator [![Build Status](https://travis-ci.com/Authenticator-Extension/Authenticator.svg?branch=dev)](https://travis-ci.com/Authenticator-Extension/Authenticator) [![Crowdin](https://d322cqt584bo4o.cloudfront.net/authenticator-firefox/localized.svg)](https://crowdin.com/project/authenticator-firefox) <img align="right" width="100" height="100" src="https://github.com/Authenticator-Extension/Authenticator/raw/dev/images/icon.svg">
+# Authenticator
 
-> Authenticator generates 2-Step Verification codes in your browser.
+A Manifest V3 TOTP/HOTP browser extension, derived from the MIT-licensed
+[Authenticator-Extension/Authenticator](https://github.com/Authenticator-Extension/Authenticator)
+(commit `9d9660bb73700b3e725800edc22836662d94afac`).
 
-## Available for Chrome, Firefox, and Microsoft Edge
+Secrets stay in the browser. This fork does **not** add network sync of codes.
+Existing encrypted backups, otpauth:// import/export, and password protection
+keep working.
 
-[<img src="https://raw.githubusercontent.com/wiki/Authenticator-Extension/Authenticator/readme-images/chrome-web-store.png" title="Chrome Web Store" width="170" height="48" />](https://chrome.google.com/webstore/detail/authenticator/bhghoamapcdpbohphigoooaddinpkbai) [<img src="https://raw.githubusercontent.com/wiki/Authenticator-Extension/Authenticator/readme-images/firefox-add-ons.png" title="Firefox Add-ons" width="170" height="48" />](https://addons.mozilla.org/en-US/firefox/addon/auth-helper?src=external-github) [<img src="https://raw.githubusercontent.com/wiki/Authenticator-Extension/Authenticator/readme-images/microsoft-store.png" title="Microsoft Store" height="48">](https://microsoftedge.microsoft.com/addons/detail/ocglkepbibnalbgmbachknglpdipeoio)
+See [NOTICE.md](NOTICE.md) and [LICENSE](LICENSE) for attribution.
 
+## What changed in this fork
 
-### Safari Edition
+1. **Modern popup UI** — updated default theme, rounded account cards, clearer
+   typography, and an always-visible search field. Manifest V3 is unchanged.
+2. **Adaptive site matching** — opening the popup ranks accounts that match the
+   current tab at the top (issuer, account, hostname, and brand aliases such as
+   `github.com` → GitHub, `accounts.google.com` → Google,
+   `login.live.com` / `microsoft.com` → Microsoft, `id.unity.com` → Unity).
+3. **Learn from copies** — copying a code while you are on a site stores a
+   local `domain → entry` association and prioritizes that entry next time.
+   Click **×** on the “Remembered” badge to forget it. Associations are stored
+   in `chrome.storage.local` only and never include secrets.
+4. **Persistent search** — text typed in the search box is kept for that tab
+   across popup close/reopen, and cleared when the tab reloads or navigates.
 
-A Safari edition of Authenticator is available on the App Store. We do not provide official support for the Safari edition.
+## Build
 
-[<img width="150" alt="Download on the App Store" src="https://developer.apple.com/assets/elements/badges/download-on-the-app-store.svg"/>](https://apps.apple.com/us/app/authen/id1602945200?mt=12)
-
-## Build Setup
-
-``` bash
-# install development dependencies
-npm install
-# compile
-npm run [chrome, firefox, prod]
-```
-
-To reproduce a build:
-
-``` bash
+```bash
 npm ci
-npm run prod
+npm run chrome      # unpacked extension in ./chrome
+# or
+npm run firefox     # ./firefox
+npm run edge        # ./edge
 ```
 
-To reproduce a build for Safari, please follow contribution guidance in [Authenticator-Extension/Authen](https://github.com/Authenticator-Extension/Authen#how-to-contribute)
+Load unpacked in Chrome:
 
-## Development (Chrome)
+1. Open `chrome://extensions`
+2. Enable **Developer mode**
+3. **Load unpacked** and choose the `chrome/` directory from this repo
 
-``` bash
-# install development dependencies
-npm install
-# compiles the Chrome extension to the `./test/chrome` directory
-npm run dev:chrome
-# load the unpacked extension from the `./test/chrome/ directory in Chrome
+Development:
+
+```bash
+npm run chrome      # one-off build
 ```
 
-Note that Windows users should download a tool like [Git Bash](https://git-scm.com/download/win) or [Cygwin](http://cygwin.com/) to build.
+## Tests
 
-## Acknowledgment
+```bash
+npm run test:unit         # matching, associations, search persistence
+npm test                  # unit tests, then the original Mocha/Puppeteer suite
+```
 
-We would like to extend our heartfelt thanks to Laurent, the Chief Information Security Officer (CISO) of the University of Luxembourg, for the invaluable support and contribution to this project. During the development process, the CISO team provided critical security recommendations that helped us identify and address potential vulnerabilities, significantly enhancing the security and reliability of the project.
+`npm test` builds the test extension (`test/chrome`) and launches Chromium via
+Puppeteer. The original component and GOST tests still run there.
 
-We especially want to acknowledge the University of Luxembourg's information security team for their selfless contribution, which not only facilitated the progress of this project but also had a positive impact on the broader open-source community. We recognize that the success of open-source software depends heavily on collaboration and support from various stakeholders, and the involvement of the University of Luxembourg has allowed us to offer a more secure and dependable product to a wider audience.
+## Storage compatibility
 
-We understand that while open-source software is free, maintaining and improving these projects requires significant resources. The University of Luxembourg’s information security team has demonstrated their strong commitment to the open-source community, contributing not just within their university but to users and developers globally. We hope this acknowledgment will help them continue to secure the support and resources necessary to further advance open-source initiatives.
+Account data, encryption keys, and UserSettings keys are unchanged. New data:
 
-Once again, we express our sincere gratitude to the University of Luxembourg's CISO team for their valuable advice and assistance.
+| Key | Area | Contents |
+| --- | --- | --- |
+| `SiteAssociations` | `chrome.storage.local` | `{ [hostname]: { entryHash, learnedAt } }` |
+| `tabSearchQueries` | `chrome.storage.session` | `{ [tabId]: query }` |
+
+Import/export (JSON and `otpauth://` / `otpauth-migration://`) is the upstream
+format.
+
+## Caveats
+
+- Vue 2.7, Vuex 3, and Webpack 5 are kept so existing components, drag-and-drop,
+  and Mocha component tests keep working. The popup look-and-feel is what was
+  modernized, not a Vue 3 rewrite.
+- Optional cloud backup (Drive / Dropbox / OneDrive) still needs your own OAuth
+  client IDs in `src/models/credentials.ts` if you redistribute the extension.
+- Learned associations follow the hostname you copied on (for example
+  `gist.github.com`). The parent registrable domain is also checked as a
+  fallback.
+- Smart Filter (hide non-matching accounts) is still optional in Settings and
+  defaults to off, same as upstream.

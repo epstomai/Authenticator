@@ -9,6 +9,12 @@ import {
   okToInjectContentScript,
 } from "./utils";
 import { CodeState } from "./models/otp";
+import { getDefaultAssociationStore } from "./models/associations";
+import { getRegistrableDomain } from "./models/matching";
+import {
+  getDefaultTabSearchStore,
+  shouldClearSearchOnTabUpdate,
+} from "./models/search-session";
 
 import { getOTPAuthPerLineFromOPTAuthMigration } from "./models/migration";
 import { isChrome, isFirefox } from "./browser";
@@ -497,7 +503,14 @@ chrome.commands.onCommand.addListener(async (command: string) => {
 
         const siteName = await getSiteName();
         const entries = await EntryStorage.get();
-        const matchedEntries = getMatchedEntries(siteName, entries);
+        const hostname = siteName[2];
+        const associations = await getDefaultAssociationStore().getAll();
+        const learned = getDefaultAssociationStore().hashesForHost(
+          hostname,
+          associations,
+          hostname ? getRegistrableDomain(hostname) : undefined
+        );
+        const matchedEntries = getMatchedEntries(siteName, entries, learned);
 
         if (matchedEntries && matchedEntries.length === 1) {
           const entry = matchedEntries[0];
@@ -595,3 +608,13 @@ async function updateContextMenu() {
 }
 
 updateContextMenu();
+
+chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
+  if (shouldClearSearchOnTabUpdate(changeInfo)) {
+    getDefaultTabSearchStore().clear(tabId);
+  }
+});
+
+chrome.tabs.onRemoved.addListener((tabId) => {
+  getDefaultTabSearchStore().clear(tabId);
+});

@@ -277,6 +277,18 @@
     "message": "Search",
     "description": "Search"
   },
+  "matches_this_site": {
+    "message": "Matches this site",
+    "description": "Badge shown on entries that match the current tab."
+  },
+  "remembered_for_site": {
+    "message": "Remembered",
+    "description": "Badge shown on an entry the user previously copied on this site."
+  },
+  "forget_association": {
+    "message": "Forget this site association",
+    "description": "Button title to remove a learned domain-to-entry mapping."
+  },
   "popout": {
     "message": "Popup mode",
     "description": "Make window turn into persistent popup"

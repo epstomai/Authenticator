@@ -1,7 +1,7 @@
 <template>
   <div
     id="codes"
-    v-bind:class="{ filter: shouldFilter && filter, search: showSearch }"
+    v-bind:class="{ filter: shouldFilter && filter, search: true }"
   >
     <!-- Filter -->
     <div class="under-header" id="filter" v-on:click="clearFilter()">
@@ -12,9 +12,11 @@
       <input
         id="searchInput"
         v-model="searchText"
-        v-bind:placeholder="i18n.search"
+        v-bind:placeholder="searchPlaceholder"
         type="text"
         tabindex="-1"
+        autocomplete="off"
+        spellcheck="false"
       />
       <div id="searchHint" v-if="searchText === ''">
         <div></div>
@@ -38,6 +40,8 @@
         v-bind:notSearched="!isSearchedEntry(entry)"
         v-bind:entry="entry"
         v-bind:tabindex="getTabindex(entry)"
+        v-bind:isMatched="isMatchedEntry(entry)"
+        v-bind:isLearned="isLearnedEntry(entry)"
       />
       <div class="no-entry" v-if="entries.length === 0 && initComplete">
         <IconKey />
@@ -56,10 +60,11 @@ import Vue from "vue";
 import { mapState, mapGetters } from "vuex";
 import { OTPEntry } from "../../models/otp";
 import { EntryStorage } from "../../models/storage";
+import { getCurrentTab } from "../../utils";
+import { getDefaultTabSearchStore } from "../../models/search-session";
 
 import EntryComponent from "./EntryComponent.vue";
 
-// import IconPlus from "../../../svg/plus.svg";
 import IconKey from "../../../svg/key-solid.svg";
 
 const computed: {
@@ -67,30 +72,62 @@ const computed: {
   showSearch: () => boolean;
   shouldFilter: () => boolean;
   entries: () => OTPEntry[];
+  matchedEntries: () => string[];
+  learnedEntryHashes: () => string[];
+  currentHostname: () => string;
 } = {
   ...mapState("accounts", ["filter", "showSearch", "initComplete"]),
-  ...mapGetters("accounts", ["shouldFilter", "entries"]),
+  ...mapGetters("accounts", [
+    "shouldFilter",
+    "entries",
+    "matchedEntries",
+    "learnedEntryHashes",
+    "currentHostname",
+  ]),
 };
 
 export default Vue.extend({
   data: function () {
     return {
       searchText: "",
+      tabId: null as number | null,
     };
   },
-  computed,
+  computed: {
+    ...computed,
+    searchPlaceholder(): string {
+      const hostname = this.currentHostname;
+      if (hostname) {
+        return `${this.i18n.search} · ${hostname}`;
+      }
+      return this.i18n.search;
+    },
+  },
+  watch: {
+    searchText(value: string) {
+      if (this.tabId !== null) {
+        getDefaultTabSearchStore().save(this.tabId, value);
+      }
+      if (value) {
+        this.$store.commit("accounts/showSearch");
+      }
+    },
+  },
   methods: {
     openLink(url: string) {
       window.open(url, "_blank");
       return;
     },
     isMatchedEntry(entry: OTPEntry) {
-      for (const hash of this.$store.getters["accounts/matchedEntries"]) {
+      for (const hash of this.matchedEntries || []) {
         if (entry.hash === hash) {
           return true;
         }
       }
       return false;
+    },
+    isLearnedEntry(entry: OTPEntry) {
+      return (this.learnedEntryHashes || []).indexOf(entry.hash) !== -1;
     },
     isSearchedEntry(entry: OTPEntry) {
       if (this.searchText === "") {
@@ -118,9 +155,7 @@ export default Vue.extend({
       );
     },
     getTabindex(entry: OTPEntry) {
-      const firstEntry = this.entries.find((entry) =>
-        this.isEntryVisible(entry)
-      );
+      const firstEntry = this.entries.find((item) => this.isEntryVisible(item));
 
       return entry === firstEntry ? 0 : -1;
     },
@@ -166,7 +201,7 @@ export default Vue.extend({
         ?.focus();
     },
   },
-  created() {
+  async created() {
     // Don't drag if !isEditing
     this.$dragula.$service.options("entryDrake", {
       invalid: () => {
@@ -195,10 +230,19 @@ export default Vue.extend({
         await EntryStorage.set(this.$store.state.accounts.entries);
       }
     );
+
+    const tab = await getCurrentTab();
+    if (tab?.id !== undefined) {
+      this.tabId = tab.id;
+      const saved = await getDefaultTabSearchStore().load(tab.id);
+      if (saved) {
+        this.searchText = saved;
+        this.$store.commit("accounts/showSearch");
+      }
+    }
   },
   components: {
     EntryComponent,
-    // IconPlus,
     IconKey,
   },
 });

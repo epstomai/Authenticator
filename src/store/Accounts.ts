@@ -7,6 +7,11 @@ import { getSiteName, getMatchedEntriesHash } from "../utils";
 import { isChromium } from "../browser";
 import { StorageLocation, UserSettings } from "../models/settings";
 import { DataType } from "../models/otp";
+import {
+  getDefaultAssociationStore,
+  SiteAssociations,
+} from "../models/associations";
+import { getRegistrableDomain, isLearnableHostname } from "../models/matching";
 
 const LegacyEncryption = "LegacyEncryption";
 export class Accounts implements Module {
@@ -26,6 +31,7 @@ export class Accounts implements Module {
     const entries = shouldShowPassphrase ? [] : await this.getEntries();
 
     await UserSettings.updateItems();
+    const associations = await getDefaultAssociationStore().getAll();
 
     return {
       state: {
@@ -40,12 +46,13 @@ export class Accounts implements Module {
         second: 0, // Offset in seconds for math
         filter: true,
         siteName: await getSiteName(),
-        showSearch: false,
+        showSearch: true,
         exportData: await EntryStorage.getExport(entries),
         exportEncData: await EntryStorage.getExport(entries, true),
         keys: await BrowserStorage.getKeys(),
         wrongPassword: false,
         initComplete: false,
+        associations,
       },
       getters: {
         shouldFilter(
@@ -57,8 +64,29 @@ export class Accounts implements Module {
             getters.matchedEntries.length
           );
         },
-        matchedEntries: (state: AccountsState) => {
-          return getMatchedEntriesHash(state.siteName, state.entries);
+        currentHostname(state: AccountsState) {
+          return state.siteName[2] || "";
+        },
+        learnedEntryHashes(state: AccountsState) {
+          const hostname = state.siteName[2];
+          const registrable = hostname
+            ? getRegistrableDomain(hostname)
+            : undefined;
+          return getDefaultAssociationStore().hashesForHost(
+            hostname,
+            state.associations,
+            registrable
+          );
+        },
+        matchedEntries: (
+          state: AccountsState,
+          getters: { learnedEntryHashes: string[] }
+        ) => {
+          return getMatchedEntriesHash(
+            state.siteName,
+            state.entries,
+            getters.learnedEntryHashes
+          );
         },
         currentlyEncrypted(state: AccountsState) {
           for (const entry of state.entries) {
@@ -68,12 +96,37 @@ export class Accounts implements Module {
           }
           return false;
         },
-        entries(state: AccountsState) {
-          const pinnedEntries = state.entries.filter((entry) => entry.pinned);
-          const unpinnedEntries = state.entries.filter(
-            (entry) => !entry.pinned
-          );
-          return [...pinnedEntries, ...unpinnedEntries];
+        entries(
+          state: AccountsState,
+          getters: { matchedEntries: string[]; learnedEntryHashes: string[] },
+          rootState: { style?: StyleState }
+        ) {
+          if (rootState.style?.style?.isEditing) {
+            return state.entries;
+          }
+
+          const learned = new Set(getters.learnedEntryHashes || []);
+          const matched = new Set(getters.matchedEntries || []);
+
+          return [...state.entries].sort((a, b) => {
+            const scoreOf = (entry: OTPEntryInterface) => {
+              let score = 0;
+              if (learned.has(entry.hash)) {
+                score += 2000;
+              } else if (matched.has(entry.hash)) {
+                score += 1000;
+              }
+              if (entry.pinned) {
+                score += 100;
+              }
+              return score;
+            };
+            const diff = scoreOf(b) - scoreOf(a);
+            if (diff !== 0) {
+              return diff;
+            }
+            return a.index - b.index;
+          });
         },
       },
       mutations: {
@@ -182,6 +235,9 @@ export class Accounts implements Module {
         initComplete(state: AccountsState) {
           state.initComplete = true;
         },
+        setAssociations(state: AccountsState, associations: SiteAssociations) {
+          state.associations = associations;
+        },
       },
       actions: {
         deleteCode: async (
@@ -194,6 +250,10 @@ export class Accounts implements Module {
           if (index > -1) {
             state.state.entries.splice(index, 1);
           }
+          const associations = await getDefaultAssociationStore().forgetEntry(
+            hash
+          );
+          state.commit("setAssociations", associations);
           state.commit(
             "updateExport",
             await EntryStorage.getExport(state.state.entries)
@@ -608,9 +668,29 @@ export class Accounts implements Module {
         },
         clearFilter: (state: ActionContext<AccountsState, object>) => {
           state.commit("stopFilter");
-          if (state.state.entries.length >= 10) {
-            state.commit("showSearch");
+          state.commit("showSearch");
+        },
+        rememberSite: async (
+          state: ActionContext<AccountsState, object>,
+          payload: { hostname: string; entryHash: string }
+        ) => {
+          if (!isLearnableHostname(payload.hostname) || !payload.entryHash) {
+            return;
           }
+          const associations = await getDefaultAssociationStore().remember(
+            payload.hostname,
+            payload.entryHash
+          );
+          state.commit("setAssociations", associations);
+        },
+        forgetSite: async (
+          state: ActionContext<AccountsState, object>,
+          hostname: string
+        ) => {
+          const associations = await getDefaultAssociationStore().forget(
+            hostname
+          );
+          state.commit("setAssociations", associations);
         },
         migrateStorage: async (
           state: ActionContext<AccountsState, object>,

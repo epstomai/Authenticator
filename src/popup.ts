@@ -154,16 +154,8 @@ async function init() {
     false
   );
 
-  // Show search box if more than 10 entries
-  if (
-    instance.$store.state.accounts.entries.length >= 10 &&
-    !(
-      instance.$store.getters["accounts/shouldFilter"] &&
-      instance.$store.state.accounts.filter
-    )
-  ) {
-    instance.$store.commit("accounts/showSearch");
-  }
+  // Search box stays visible so the last query can be restored per tab.
+  instance.$store.commit("accounts/showSearch");
 
   const query = new URLSearchParams(document.location.search.substring(1));
   // Resize window to proper size if popup

@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Authenticator popup preview</title>
+    <link href="../css/popup.css" type="text/css" rel="stylesheet" />
+    <style>
+      html,
+      body {
+        margin: 0;
+        width: auto !important;
+        height: auto !important;
+        overflow: auto !important;
+        background: #dbe4ee;
+      }
+      .preview-stage {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 32px 16px;
+      }
+      .preview-frame {
+        width: 320px;
+        height: 480px;
+        overflow: hidden;
+        border-radius: 12px;
+        box-shadow: 0 18px 50px rgba(15, 23, 42, 0.22);
+        background: #fff;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="preview-stage">
+      <div class="preview-frame theme-normal">
+        <div class="header">
+          <span>Authenticator</span>
+          <div>
+            <div class="icon" id="i-menu" title="Settings">
+              <svg viewBox="0 0 24 24">
+                <path
+                  d="M19.14 12.94c.04-.31.06-.63.06-.94s-.02-.63-.06-.94l2.03-1.58a.5.5 0 0 0 .12-.64l-1.92-3.32a.5.5 0 0 0-.61-.22l-2.39.96a7.03 7.03 0 0 0-1.63-.94L14.5 2.5a.5.5 0 0 0-.5-.5h-4a.5.5 0 0 0-.5.5l-.36 2.54c-.59.22-1.14.53-1.63.94l-2.39-.96a.5.5 0 0 0-.61.22L2.59 8.56a.5.5 0 0 0 .12.64L4.74 10.8c-.04.31-.06.63-.06.94s.02.63.06.94L2.71 14.26a.5.5 0 0 0-.12.64l1.92 3.32c.14.24.43.34.69.24l2.39-.96c.49.4 1.04.72 1.63.94l.36 2.54a.5.5 0 0 0 .5.5h4c.25 0 .46-.18.5-.42l.36-2.54c.59-.22 1.14-.53 1.63-.94l2.39.96c.26.1.55 0 .69-.24l1.92-3.32a.5.5 0 0 0-.12-.64l-2.03-1.58zM12 15.5A3.5 3.5 0 1 1 12 8.5a3.5 3.5 0 0 1 0 7z"
+                />
+              </svg>
+            </div>
+            <div class="icon" id="i-qr" title="Scan QR Code">
+              <svg viewBox="0 0 24 24">
+                <path
+                  d="M3 3h8v8H3V3zm2 2v4h4V5H5zm8-2h8v8h-8V3zm2 2v4h4V5h-4zM3 13h8v8H3v-8zm2 2v4h4v-4H5zm12-2h2v2h-2v-2zm-4 0h2v2h-2v-2zm4 4h2v2h-2v-2zm0 4h2v2h-2v-2zm-4-4h2v6h-2v-6z"
+                />
+              </svg>
+            </div>
+            <div class="icon" id="i-edit" title="Edit">
+              <svg viewBox="0 0 24 24">
+                <path
+                  d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"
+                />
+              </svg>
+            </div>
+          </div>
+        </div>
+        <div id="codes" class="search">
+          <div class="under-header" id="search" style="display: block">
+            <input
+              id="searchInput"
+              placeholder="Search · github.com"
+              type="text"
+              value=""
+              readonly
+            />
+          </div>
+          <div>
+            <a class="entry matchedEntry learnedEntry" role="button">
+              <div class="issuer">
+                <span class="issuer-name">GitHub</span>
+                <span class="badge badge-learned"
+                  >Remembered
+                  <button type="button" class="forget-association">×</button>
+                </span>
+              </div>
+              <div class="code">482 193</div>
+              <div class="issuer account">octocat</div>
+            </a>
+            <a class="entry matchedEntry" role="button">
+              <div class="issuer">
+                <span class="issuer-name">GitHub</span>
+                <span class="badge badge-match">Matches this site</span>
+              </div>
+              <div class="code">910 447</div>
+              <div class="issuer account">work@company.com</div>
+            </a>
+            <a class="entry" role="button">
+              <div class="issuer"><span class="issuer-name">Google</span></div>
+              <div class="code">331 028</div>
+              <div class="issuer account">user@gmail.com</div>
+            </a>
+            <a class="entry" role="button">
+              <div class="issuer">
+                <span class="issuer-name">Microsoft</span>
+              </div>
+              <div class="code">774 652</div>
+              <div class="issuer account">nina@outlook.com</div>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

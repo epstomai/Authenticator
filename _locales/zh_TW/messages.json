@@ -277,6 +277,18 @@
     "message": "搜尋",
     "description": "Search"
   },
+  "matches_this_site": {
+    "message": "符合此網站",
+    "description": "Badge shown on entries that match the current tab."
+  },
+  "remembered_for_site": {
+    "message": "已記住",
+    "description": "Badge shown on an entry the user previously copied on this site."
+  },
+  "forget_association": {
+    "message": "忘記此網站關聯",
+    "description": "Button title to remove a learned domain-to-entry mapping."
+  },
   "popout": {
     "message": "彈出模式",
     "description": "Make window turn into persistent popup"

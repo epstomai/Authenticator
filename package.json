@@ -10,7 +10,9 @@
     "edge": "bash scripts/build.sh edge",
     "prod": "bash scripts/build.sh prod",
     "pretest": "bash scripts/build.sh test",
-    "test": "node scripts/test-runner.js"
+    "test:unit": "mocha --require tsx/cjs --timeout 10000 'src/test/unit/**/*.test.ts'",
+    "test:extension": "node scripts/test-runner.js",
+    "test": "npm run test:unit && node scripts/test-runner.js"
   },
   "repository": {
     "type": "git",
@@ -53,6 +55,7 @@
     "sinon-chrome": "^3.0.1",
     "stream-browserify": "^3.0.0",
     "ts-loader": "^9.0.0",
+    "tsx": "^4.19.2",
     "typescript": "^5.0.0",
     "url-loader": "^4.0.0",
     "util": "^0.12.5",

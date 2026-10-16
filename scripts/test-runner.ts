@@ -36,23 +36,36 @@ const colors = {
 }
 
 async function runTests() {
+  const extensionPath = path.resolve(__dirname, "../test/chrome");
   const puppeteerArgs: string[] = [
-    `--load-extension=${path.resolve(__dirname, "../test/chrome")}`,
+    // Chrome 137+ blocks --load-extension unless debugging is enabled.
+    "--enable-unsafe-extension-debugging",
     // for CI
     "--no-sandbox",
     "--lang=en-US,en"
   ];
 
   const browser = await puppeteer.launch({
-    ignoreDefaultArgs: ["--disable-extensions"],
+    // --enable-automation causes chrome-extension:// navigations to fail with
+    // net::ERR_BLOCKED_BY_CLIENT on current Chrome.
+    ignoreDefaultArgs: ["--disable-extensions", "--enable-automation"],
     args: puppeteerArgs,
     // chrome extensions don't work in headless
     headless: false,
     executablePath: process.env.PUPPETEER_EXEC_PATH,
+    pipe: true,
   });
+
+  const cdp = await browser.target().createCDPSession();
+  const loaded = (await cdp.send("Extensions.loadUnpacked" as never, {
+    path: extensionPath,
+  } as never)) as { id?: string };
+  const extensionId =
+    loaded?.id || "bhghoamapcdpbohphigoooaddinpkbai";
+
   const mochaPage = await browser.newPage();
   await mochaPage.goto(
-    "chrome-extension://bhghoamapcdpbohphigoooaddinpkbai/view/test.html"
+    `chrome-extension://${extensionId}/view/test.html`
   );
 
   // by setting this env var, console logging works for both components and testing

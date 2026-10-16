@@ -2,6 +2,19 @@ import { Encryption } from "./encryption";
 import { OTPEntry, OTPType, OTPAlgorithm, CodeState } from "./otp";
 import { StorageLocation, UserSettings } from "./settings";
 import { DataType } from "./otp";
+import { ASSOCIATIONS_KEY } from "./associations";
+
+export const RESERVED_STORAGE_KEYS = [
+  "UserSettings",
+  ASSOCIATIONS_KEY,
+  "key",
+  "LocalStorage",
+];
+
+export function isReservedStorageKey(hash: string): boolean {
+  return RESERVED_STORAGE_KEYS.indexOf(hash) !== -1;
+}
+
 export class BrowserStorage {
   private static async getStorageLocation(): Promise<StorageLocation> {
     await UserSettings.updateItems();
@@ -69,6 +82,8 @@ export class BrowserStorage {
     const removeOtherData = function (items: Record<string, unknown>): void {
       delete items.key;
       delete items.LocalStorage;
+      delete items[ASSOCIATIONS_KEY];
+      delete items.UserSettings;
 
       for (const itemId in items) {
         const item = items[itemId];
@@ -287,7 +302,7 @@ export class EntryStorage {
 
     for (const hash of Object.keys(data)) {
       if (
-        hash === "UserSettings" ||
+        isReservedStorageKey(hash) ||
         (data[hash] as { dataType: string }).dataType === "Key" ||
         !this.isValidEntry(data, hash)
       ) {
@@ -376,7 +391,7 @@ export class EntryStorage {
     const _data = await BrowserStorage.get();
     for (const hash of Object.keys(_data)) {
       if (
-        hash === "UserSettings" ||
+        isReservedStorageKey(hash) ||
         (_data[hash] as { dataType: string }).dataType === "Key" ||
         !this.isValidEntry(_data, hash)
       ) {
@@ -590,7 +605,7 @@ export class EntryStorage {
 
     for (const hash of Object.keys(_data)) {
       if (
-        hash === "UserSettings" ||
+        isReservedStorageKey(hash) ||
         (_data[hash] as { dataType: string }).dataType === "Key" ||
         !this.isValidEntry(_data, hash)
       ) {
